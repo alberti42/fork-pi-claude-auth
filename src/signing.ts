@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process"
 import { createHash } from "node:crypto"
 
 const BILLING_SALT = "59cf53e54c78"
@@ -6,16 +7,47 @@ const BILLING_SALT = "59cf53e54c78"
 // user-agent. The billing header's cc_version must match the user-agent
 // version for Anthropic's subscription-billing validation to route the request
 // to the Claude Pro/Max plan instead of pay-as-you-go / extra usage.
-// Overridable via ANTHROPIC_CLI_VERSION.
-export const CC_VERSION = "2.1.160"
+// Overridable via ANTHROPIC_CLI_VERSION; otherwise the installed `claude`
+// version is used, and this constant only when `claude` is not on PATH.
+// Anthropic rejects versions older than a per-model minimum.
+export const CC_VERSION = "2.1.304"
 
 // Billing entrypoint, mirrored in the user-agent's `(external, <entrypoint>)`
 // suffix. Overridable via CLAUDE_CODE_ENTRYPOINT.
 export const CC_ENTRYPOINT = "sdk-cli"
 
-/** Resolve the Claude Code CLI version (env override wins). */
+/** Extract `X.Y.Z` from `claude --version` output, e.g. "2.1.304 (Claude Code)". */
+export function parseClaudeVersion(output: string): string | null {
+    const match = /^(\d+\.\d+\.\d+)\b/.exec(output.trim())
+    return match ? match[1] : null
+}
+
+let installedVersion: string | null | undefined
+
+/** Version of the installed `claude` CLI, read once per process. */
+function getInstalledVersion(): string | null {
+    if (installedVersion !== undefined) return installedVersion
+    try {
+        const output = execFileSync("claude", ["--version"], {
+            timeout: 5000,
+            encoding: "utf-8",
+            stdio: ["ignore", "pipe", "ignore"],
+        })
+        installedVersion = parseClaudeVersion(output)
+    } catch {
+        installedVersion = null
+    }
+    return installedVersion
+}
+
+/**
+ * Resolve the Claude Code CLI version: ANTHROPIC_CLI_VERSION, then the
+ * installed `claude` version, then CC_VERSION.
+ */
 export function getCliVersion(): string {
-    return process.env.ANTHROPIC_CLI_VERSION ?? CC_VERSION
+    return (
+        process.env.ANTHROPIC_CLI_VERSION ?? getInstalledVersion() ?? CC_VERSION
+    )
 }
 
 /** Resolve the billing entrypoint (env override wins). */

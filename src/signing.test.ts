@@ -7,6 +7,8 @@ import {
     computeCch,
     computeVersionSuffix,
     extractFirstUserMessageText,
+    getCliVersion,
+    parseClaudeVersion,
 } from "./signing.ts"
 
 const prevUa = process.env.ANTHROPIC_USER_AGENT
@@ -84,7 +86,10 @@ test("buildUserAgent: default Claude Code form", () => {
     delete process.env.ANTHROPIC_USER_AGENT
     delete process.env.ANTHROPIC_CLI_VERSION
     delete process.env.CLAUDE_CODE_ENTRYPOINT
-    assert.equal(buildUserAgent(), "claude-cli/2.1.160 (external, sdk-cli)")
+    assert.equal(
+        buildUserAgent(),
+        `claude-cli/${getCliVersion()} (external, sdk-cli)`,
+    )
 })
 
 test("buildUserAgent: honors version and entrypoint overrides", () => {
@@ -97,4 +102,9 @@ test("buildUserAgent: honors version and entrypoint overrides", () => {
 test("buildUserAgent: full override wins", () => {
     process.env.ANTHROPIC_USER_AGENT = "custom-agent/1.0"
     assert.equal(buildUserAgent(), "custom-agent/1.0")
+})
+
+test("parseClaudeVersion: reads the version from claude --version", () => {
+    assert.equal(parseClaudeVersion("2.1.304 (Claude Code)\n"), "2.1.304")
+    assert.equal(parseClaudeVersion("not a version"), null)
 })

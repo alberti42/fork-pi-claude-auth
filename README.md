@@ -194,8 +194,10 @@ one account is found, the picker is skipped.
 
 ### Claude Code version pinning
 
-The Claude Code version is pinned to `2.1.160` for billing header computation.
-If billing reverts to extra usage after a Claude Code update, override:
+The user-agent and billing header carry a Claude Code version. The extension
+uses the version printed by `claude --version`, or `2.1.304` when `claude` is
+not on PATH. Anthropic rejects versions older than a per-model minimum
+(`claude_code_version_too_old`). To set the version explicitly:
 
 ```bash
 export ANTHROPIC_CLI_VERSION=<new-version>
@@ -247,12 +249,12 @@ write-back is enabled by default to keep your stored credentials valid.
 
 ## Environment variables
 
-| Variable                  | Description                                                                    | Default       |
-| ------------------------- | ------------------------------------------------------------------------------ | ------------- |
-| `CLAUDE_CODE_OAUTH_TOKEN` | Long-lived OAuth token from `claude setup-token`; used instead of the Keychain | unset         |
-| `PI_CODING_AGENT_DIR`     | pi's config directory (where `auth.json` lives)                                | `~/.pi/agent` |
-| `PI_CLAUDE_AUTH_DEBUG`    | Enable diagnostic logging (`1` for default path, or a custom file path)        | disabled      |
-| `ANTHROPIC_CLI_VERSION`   | Claude CLI version for billing headers                                         | `2.1.160`     |
+| Variable                  | Description                                                                    | Default                                    |
+| ------------------------- | ------------------------------------------------------------------------------ | ------------------------------------------ |
+| `CLAUDE_CODE_OAUTH_TOKEN` | Long-lived OAuth token from `claude setup-token`; used instead of the Keychain | unset                                      |
+| `PI_CODING_AGENT_DIR`     | pi's config directory (where `auth.json` lives)                                | `~/.pi/agent`                              |
+| `PI_CLAUDE_AUTH_DEBUG`    | Enable diagnostic logging (`1` for default path, or a custom file path)        | disabled                                   |
+| `ANTHROPIC_CLI_VERSION`   | Claude CLI version for billing headers                                         | installed `claude` version, else `2.1.304` |
 
 ## How it works
 

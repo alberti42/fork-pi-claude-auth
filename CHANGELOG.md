@@ -8,6 +8,9 @@
   `claude setup-token`). It takes precedence over the Keychain and the
   credentials file. The user-agent override and billing header apply to it;
   token refresh and `auth.json` seeding are skipped.
+- Take the Claude Code version for the user-agent and billing header from
+  `claude --version`, falling back to `2.1.304` (was a fixed `2.1.160`, which
+  Anthropic rejects for newer models with `claude_code_version_too_old`).
 
 # [0.1.0](https://github.com/pankajudhas81/pi-claude-auth/compare/v0.0.1...v0.1.0) (2026-05-30)
 
