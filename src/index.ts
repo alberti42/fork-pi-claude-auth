@@ -5,11 +5,13 @@ import type {
     ProviderConfig,
 } from "@earendil-works/pi-coding-agent"
 import {
+    ENV_OAUTH_TOKEN,
     forceRefreshActiveCredentials,
     getCachedCredentials,
     getCredentialsForSync,
     initAccounts,
     loadPersistedAccountSource,
+    readEnvOAuthToken,
     refreshAccountsList,
     saveAccountSource,
     setActiveAccountSource,
@@ -80,6 +82,29 @@ function applyCredential(ctx: ExtensionContext): boolean {
 }
 
 /**
+ * Inject the Claude Code billing header so requests bill against the
+ * Claude Pro/Max subscription rather than pay-as-you-go API credits.
+ * pi's built-in Anthropic provider supplies the identity, betas, and
+ * user-agent for OAuth tokens but not this header.
+ */
+function registerBillingHeader(pi: ExtensionAPI): void {
+    pi.on("before_provider_request", (event) => {
+        try {
+            const updated = injectBillingHeader(event.payload)
+            if (updated) {
+                log("billing_header_injected", {})
+                return updated
+            }
+        } catch (err) {
+            log("billing_header_error", {
+                error: err instanceof Error ? err.message : String(err),
+            })
+        }
+        return undefined
+    })
+}
+
+/**
  * pi-claude-auth extension.
  *
  * Reads your existing Claude Code OAuth credentials (macOS Keychain or
@@ -101,6 +126,22 @@ function applyCredential(ctx: ExtensionContext): boolean {
  */
 const extension = async (pi: ExtensionAPI): Promise<void> => {
     initLogger()
+
+    // A `claude setup-token` token in CLAUDE_CODE_OAUTH_TOKEN takes precedence
+    // over the Keychain, as in Claude Code. The token lasts a year and has no
+    // refresh token, so the OAuth override, auth.json seeding, and background
+    // sync are skipped. pi reads the variable through the provider's `apiKey`
+    // on each request; a stored `anthropic` credential in auth.json still wins.
+    if (readEnvOAuthToken()) {
+        log("extension_init", { mode: "env", envVar: ENV_OAUTH_TOKEN })
+        pi.registerProvider(PROVIDER_ID, {
+            apiKey: `$${ENV_OAUTH_TOKEN}`,
+            headers: { "user-agent": buildUserAgent() },
+        })
+        registerBillingHeader(pi)
+        log("provider_registered", { provider: PROVIDER_ID, mode: "env" })
+        return
+    }
 
     let accounts: ClaudeAccount[] = []
     try {
@@ -243,24 +284,7 @@ const extension = async (pi: ExtensionAPI): Promise<void> => {
         applyCredential(ctx)
     })
 
-    // Inject the Claude Code billing header so requests bill against the
-    // Claude Pro/Max subscription rather than pay-as-you-go API credits.
-    // pi's built-in Anthropic provider supplies the identity, betas, and
-    // user-agent for OAuth tokens but not this header.
-    pi.on("before_provider_request", (event) => {
-        try {
-            const updated = injectBillingHeader(event.payload)
-            if (updated) {
-                log("billing_header_injected", {})
-                return updated
-            }
-        } catch (err) {
-            log("billing_header_error", {
-                error: err instanceof Error ? err.message : String(err),
-            })
-        }
-        return undefined
-    })
+    registerBillingHeader(pi)
 
     log("provider_registered", { provider: PROVIDER_ID })
 }

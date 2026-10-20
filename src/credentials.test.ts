@@ -4,8 +4,10 @@ import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { afterEach, beforeEach, test } from "node:test"
 import {
+    ENV_OAUTH_TOKEN,
     loadPersistedAccountSource,
     parseOAuthResponse,
+    readEnvOAuthToken,
     saveAccountSource,
     syncAuthJson,
 } from "./credentials.ts"
@@ -110,4 +112,16 @@ test("account source persistence round-trips", () => {
     assert.equal(loadPersistedAccountSource(), null)
     saveAccountSource("Claude Code-credentials")
     assert.equal(loadPersistedAccountSource(), "Claude Code-credentials")
+})
+
+test("readEnvOAuthToken: returns the trimmed token", () => {
+    assert.equal(
+        readEnvOAuthToken({ [ENV_OAUTH_TOKEN]: " sk-ant-oat01-x\n" }),
+        "sk-ant-oat01-x",
+    )
+})
+
+test("readEnvOAuthToken: returns null when unset or blank", () => {
+    assert.equal(readEnvOAuthToken({}), null)
+    assert.equal(readEnvOAuthToken({ [ENV_OAUTH_TOKEN]: "  " }), null)
 })

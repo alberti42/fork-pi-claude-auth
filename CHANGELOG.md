@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+### Features
+
+- Read a long-lived OAuth token from `CLAUDE_CODE_OAUTH_TOKEN` (created with
+  `claude setup-token`). It takes precedence over the Keychain and the
+  credentials file. The user-agent override and billing header apply to it;
+  token refresh and `auth.json` seeding are skipped.
+
 # [0.1.0](https://github.com/pankajudhas81/pi-claude-auth/compare/v0.0.1...v0.1.0) (2026-05-30)
 
 ## 0.0.1

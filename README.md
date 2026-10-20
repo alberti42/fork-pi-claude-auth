@@ -142,9 +142,27 @@ or [@cortexkit/pi-anthropic-auth](https://pi.dev/packages/@cortexkit/pi-anthropi
 
 The extension checks these in order:
 
-1. macOS Keychain (all `Claude Code-credentials*` entries — multiple accounts
+1. `CLAUDE_CODE_OAUTH_TOKEN` (a long-lived token from `claude setup-token`;
+   see below)
+2. macOS Keychain (all `Claude Code-credentials*` entries — multiple accounts
    are detected automatically)
-2. `~/.claude/.credentials.json` (fallback, works on all platforms)
+3. `~/.claude/.credentials.json` (fallback, works on all platforms)
+
+### Long-lived token (`CLAUDE_CODE_OAUTH_TOKEN`)
+
+`claude setup-token` prints an OAuth token valid for one year. Claude Code reads
+it from `CLAUDE_CODE_OAUTH_TOKEN` and does not write it to the Keychain or to
+`~/.claude/.credentials.json`. When the variable is set, the extension:
+
+- passes the token to pi's `anthropic` provider (pi reads the variable on each
+  request);
+- overrides the user-agent and injects the billing header, as with Keychain
+  credentials;
+- skips the OAuth override, the `auth.json` seeding, and the background
+  re-sync, because the token has no refresh token.
+
+A stored `anthropic` credential in `~/.pi/agent/auth.json` takes precedence over
+the variable. Remove it with `/logout` if one is left over.
 
 ## Multiple accounts (macOS)
 
@@ -229,11 +247,12 @@ write-back is enabled by default to keep your stored credentials valid.
 
 ## Environment variables
 
-| Variable                | Description                                                             | Default       |
-| ----------------------- | ----------------------------------------------------------------------- | ------------- |
-| `PI_CODING_AGENT_DIR`   | pi's config directory (where `auth.json` lives)                         | `~/.pi/agent` |
-| `PI_CLAUDE_AUTH_DEBUG`  | Enable diagnostic logging (`1` for default path, or a custom file path) | disabled      |
-| `ANTHROPIC_CLI_VERSION` | Claude CLI version for billing headers                                  | `2.1.160`     |
+| Variable                  | Description                                                                    | Default       |
+| ------------------------- | ------------------------------------------------------------------------------ | ------------- |
+| `CLAUDE_CODE_OAUTH_TOKEN` | Long-lived OAuth token from `claude setup-token`; used instead of the Keychain | unset         |
+| `PI_CODING_AGENT_DIR`     | pi's config directory (where `auth.json` lives)                                | `~/.pi/agent` |
+| `PI_CLAUDE_AUTH_DEBUG`    | Enable diagnostic logging (`1` for default path, or a custom file path)        | disabled      |
+| `ANTHROPIC_CLI_VERSION`   | Claude CLI version for billing headers                                         | `2.1.160`     |
 
 ## How it works
 

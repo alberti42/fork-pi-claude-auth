@@ -23,6 +23,20 @@ export type { ClaudeAccount } from "./keychain.ts"
 
 const CREDENTIAL_CACHE_TTL_MS = 30_000
 
+/**
+ * Env var holding a long-lived OAuth token from `claude setup-token`. Claude
+ * Code gives it precedence over the Keychain; so does this extension.
+ */
+export const ENV_OAUTH_TOKEN = "CLAUDE_CODE_OAUTH_TOKEN"
+
+/** Returns the env OAuth token, or null when the variable is unset or blank. */
+export function readEnvOAuthToken(
+    env: NodeJS.ProcessEnv = process.env,
+): string | null {
+    const token = env[ENV_OAUTH_TOKEN]?.trim()
+    return token ? token : null
+}
+
 const accountCacheMap = new Map<
     string,
     { creds: ClaudeCredentials; cachedAt: number }
